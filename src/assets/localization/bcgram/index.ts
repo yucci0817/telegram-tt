@@ -14,6 +14,7 @@ import { buildStringsPack, type LocalLangMeta } from '../../../util/data/readFal
  */
 export const BCGRAM_LANGUAGES: Record<string, LocalLangMeta> = {
   bn: { langCode: 'bn', name: 'Bengali', nativeName: 'বাংলা', pluralCode: 'bn' },
+  hi: { langCode: 'hi', name: 'Hindi', nativeName: 'हिन्दी', pluralCode: 'hi' },
   my: { langCode: 'my', name: 'Burmese', nativeName: 'မြန်မာ', pluralCode: 'my' },
   ne: { langCode: 'ne', name: 'Nepali', nativeName: 'नेपाली', pluralCode: 'ne' },
   vi: { langCode: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', pluralCode: 'vi' },
@@ -21,6 +22,7 @@ export const BCGRAM_LANGUAGES: Record<string, LocalLangMeta> = {
 
 const LOADERS: Record<string, () => Promise<{ default: string }>> = {
   bn: () => import('./bn.strings?raw'),
+  hi: () => import('./hi.strings?raw'),
   my: () => import('./my.strings?raw'),
   ne: () => import('./ne.strings?raw'),
   vi: () => import('./vi.strings?raw'),
