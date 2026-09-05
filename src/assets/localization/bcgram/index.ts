@@ -14,10 +14,12 @@ import { buildStringsPack, type LocalLangMeta } from '../../../util/data/readFal
  */
 export const BCGRAM_LANGUAGES: Record<string, LocalLangMeta> = {
   ne: { langCode: 'ne', name: 'Nepali', nativeName: 'नेपाली', pluralCode: 'ne' },
+  vi: { langCode: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', pluralCode: 'vi' },
 };
 
 const LOADERS: Record<string, () => Promise<{ default: string }>> = {
   ne: () => import('./ne.strings?raw'),
+  vi: () => import('./vi.strings?raw'),
 };
 
 export function isBcgramLanguage(langCode: string): boolean {
