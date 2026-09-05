@@ -216,7 +216,7 @@
 "VoipChatStartScreenCapture" = "Chia sẻ màn hình";
 "VoipGroupLeaveAlertEndChat" = "Kết thúc cuộc trò chuyện video";
 "VoipSpeaker" = "Loa";
-"VoipCamera" = "Camera";
+"VoipCamera" = "Máy ảnh";
 "VoipGroupLeave" = "Rời khỏi";
 "VoipGroupEndAlertTitle" = "Kết thúc cuộc trò chuyện video";
 "VoipGroupLeaveAlertTitle" = "Rời khỏi cuộc trò chuyện video";
@@ -325,7 +325,7 @@
 "SavedMessages" = "Tin nhắn đã lưu";
 "SavedMessagesShort" = "Đã lưu";
 "AccDescrPrevious" = "Trước đó";
-"ReportReasonSpam" = "Spam";
+"ReportReasonSpam" = "Tin nhắn rác";
 "ReportReasonViolence" = "Bạo lực";
 "ReportReasonPornography" = "Nội dung khiêu dâm";
 "ReportReasonChildAbuse" = "Lạm dụng trẻ em";
@@ -1024,7 +1024,7 @@
 "PaymentShippingStatePlaceholder" = "Tỉnh/Bang";
 "PaymentShippingReceiver" = "Người nhận";
 "PaymentShippingName" = "Họ và tên";
-"PaymentShippingEmailPlaceholder" = "Email";
+"PaymentShippingEmailPlaceholder" = "Thư điện tử";
 "PaymentShippingPhoneNumber" = "Số điện thoại";
 "PaymentShippingSave" = "Lưu thông tin giao hàng";
 "PaymentShippingSaveInfo" = "Bạn có thể lưu thông tin giao hàng để sử dụng cho lần sau.";
@@ -1317,10 +1317,10 @@
 "FilterContacts" = "Danh bạ";
 "FilterNonContacts" = "Người ngoài danh bạ";
 "FromYou" = "Bạn";
-"Album" = "Album";
+"Album" = "Bộ sưu tập";
 "AttachPhoto" = "Ảnh";
 "AttachGif" = "GIF";
-"AttachVideo" = "Video";
+"AttachVideo" = "Đoạn phim";
 "AttachSticker" = "Nhãn dán";
 "AttachMusic" = "Âm nhạc";
 "AttachContact" = "Liên hệ";
@@ -1328,8 +1328,8 @@
 "AttachInvoice" = "Hóa đơn: {description}";
 "AttachLocation" = "Vị trí";
 "AttachLiveLocation" = "Vị trí trực tiếp";
-"AttachGiveaway" = "Giveaway";
-"AttachGiveawayResults" = "Kết quả Giveaway";
+"AttachGiveaway" = "Chương trình tặng quà";
+"AttachGiveawayResults" = "Kết quả chương trình tặng quà";
 "AttachTodo" = "Danh sách kiểm tra";
 "ServiceNotifications" = "thông báo dịch vụ";
 "Bot" = "bot";
@@ -2127,7 +2127,7 @@
 "ViewButtonBotApp" = "KHỞI CHẠY";
 "ViewChatList" = "XEM DANH SÁCH TRÒ CHUYỆN";
 "ViewButtonStory" = "XEM TIN";
-"ViewButtonBoost" = "BOOST";
+"ViewButtonBoost" = "TĂNG CẤP";
 "ViewButtonStickerset" = "XEM NHÃN DÁN";
 "ViewButtonEmojiset" = "XEM BIỂU TƯỢNG CẢM XÚC";
 "ViewButtonGiftUnique" = "XEM VẬT PHẨM SƯU TẦM";
@@ -2922,7 +2922,7 @@
 "GiftAuctionRecipient" = "Người nhận";
 "GiftAuctionDate" = "Ngày";
 "GiftAuctionAcceptedBid" = "Giá đặt được chấp nhận";
-"GiftAuctionTopPosition" = "TOP {position}";
+"GiftAuctionTopPosition" = "HẠNG {position}";
 "GiftAuctionCustomBidTitle" = "Đặt giá tùy chỉnh";
 "GiftAuctionCustomBidDescription" = "Nếu bạn rớt khỏi top {count}, giá đặt của bạn sẽ được chuyển sang vòng tiếp theo.";
 "GiftAuctionCustomBidPlaceholder" = "Giá tùy chỉnh...";

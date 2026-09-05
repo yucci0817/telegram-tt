@@ -434,7 +434,7 @@
 "Weeks_other" = "{count} সপ্তাহ";
 "Months_one" = "{count} মাস";
 "Months_other" = "{count} মাস";
-"AuthSessionsCurrentSession" = "THIS DEVICE";
+"AuthSessionsCurrentSession" = "এই ডিভাইস";
 "TerminateAllSessions" = "অন্য সব সেশন বন্ধ করুন";
 "OtherSessions" = "সক্রিয় সেশনসমূহ";
 "TerminateOldSessionHeader" = "পুরনো সেশন স্বয়ংক্রিয়ভাবে বন্ধ করুন";
@@ -765,7 +765,7 @@
 "MenuStars" = "আমার স্টার";
 "MenuGram" = "আমার গ্রাম";
 "MenuSendGift" = "উপহার পাঠান";
-"MenuTelegramFaq" = "Telegram FAQ";
+"MenuTelegramFaq" = "Telegram প্রশ্নোত্তর";
 "MenuPrivacyPolicy" = "গোপনীয়তা নীতি";
 "MenuAskText" = "অনুগ্রহ করে মনে রাখবেন Telegram সাপোর্ট স্বেচ্ছাসেবকদের দ্বারা পরিচালিত হয়। আমরা যথাসম্ভব দ্রুত উত্তর দেওয়ার চেষ্টা করি, তবে কিছুটা সময় লাগতে পারে।\n\nঅনুগ্রহ করে Telegram FAQ দেখে নিন: এতে গুরুত্বপূর্ণ সমস্যা সমাধান সংক্রান্ত পরামর্শ এবং অধিকাংশ প্রশ্নের উত্তর রয়েছে।";
 "SettingsPerformanceSliderTitle" = "অ্যানিমেশনের মাত্রা";
@@ -1971,8 +1971,8 @@
 "ChatGroups_other" = "{count}টি গ্রুপ";
 "StarsAmount" = "⭐️{amount}";
 "StarsAmountIconLast" = "{amount}⭐️";
-"StarsAmountText_one" = "{amount} Star";
-"StarsAmountText_other" = "{amount} Stars";
+"StarsAmountText_one" = "{amount} স্টার";
+"StarsAmountText_other" = "{amount} স্টার";
 "AllGiftsCategory" = "সব উপহার";
 "PremiumGiftDescription" = "Premium";
 "SendPaidReaction" = "⭐️{amount} পাঠান";
@@ -2947,7 +2947,7 @@
 "GiftAuctionListRound" = "{total}-এর মধ্যে রাউন্ড {current}";
 "GiftAuctionActiveTitle" = "সক্রিয় নিলাম";
 "GiftAuctionNoActive" = "আপনি কোনো নিলামে অংশগ্রহণ করছেন না";
-"StarGiftInfoTitle" = "Telegram Gifts";
+"StarGiftInfoTitle" = "Telegram উপহার";
 "StarGiftInfoSubtitle" = "Gifts হলো সংগ্রহযোগ্য আইটেম যা আপনি ট্রেড করতে পারেন বা আপনার প্রোফাইলে প্রদর্শন করতে পারেন।";
 "StarGiftInfoUniqueTitle" = "অনন্য";
 "StarGiftInfoUniqueSubtitle" = "একটি অনন্য নম্বর, মডেল, ব্যাকড্রপ এবং প্রতীক পেতে আপনার গিফট আপগ্রেড করুন।";
@@ -2955,7 +2955,7 @@
 "StarGiftInfoTradableSubtitle" = "আপনার গিফট Telegram-এ বা তৃতীয় পক্ষের NFT মার্কেটপ্লেসে বিক্রি করুন।";
 "StarGiftInfoWearableTitle" = "ব্যবহারযোগ্য";
 "StarGiftInfoWearableSubtitle" = "আপনার প্রোফাইলে গিফট প্রদর্শন করুন এবং সেগুলোকে আপনার কভার বা স্ট্যাটাস হিসেবে সেট করুন।";
-"StarGift" = "Star Gift";
+"StarGift" = "স্টার উপহার";
 "SettingsItemPrivacyPasskeys" = "পাসকি";
 "SettingsItemPrivacyOn" = "চালু";
 "SettingsItemPrivacyOff" = "বন্ধ";

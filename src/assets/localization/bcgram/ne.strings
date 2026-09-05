@@ -765,7 +765,7 @@
 "MenuStars" = "मेरा Stars";
 "MenuGram" = "मेरो Gram";
 "MenuSendGift" = "उपहार पठाउनुहोस्";
-"MenuTelegramFaq" = "Telegram FAQ";
+"MenuTelegramFaq" = "Telegram प्रश्नोत्तर";
 "MenuPrivacyPolicy" = "गोपनीयता नीति";
 "MenuAskText" = "कृपया ध्यान दिनुहोस् कि Telegram सहायता स्वयंसेवकहरूद्वारा सञ्चालन गरिन्छ। हामी सकेसम्म चाँडो जवाफ दिने प्रयास गर्छौं, तर केही समय लाग्न सक्छ।\\n\\nकृपया Telegram FAQ हेर्नुहोस्: यसमा महत्त्वपूर्ण समस्या समाधानका सुझावहरू र धेरैजसो प्रश्नहरूको उत्तर छ।";
 "SettingsPerformanceSliderTitle" = "एनिमेसन स्तर";
@@ -1971,8 +1971,8 @@
 "ChatGroups_other" = "{count} समूहहरू";
 "StarsAmount" = "⭐️{amount}";
 "StarsAmountIconLast" = "{amount}⭐️";
-"StarsAmountText_one" = "{amount} Star";
-"StarsAmountText_other" = "{amount} Stars";
+"StarsAmountText_one" = "{amount} स्टार";
+"StarsAmountText_other" = "{amount} स्टार";
 "AllGiftsCategory" = "सबै उपहारहरू";
 "PremiumGiftDescription" = "Premium";
 "SendPaidReaction" = "⭐️{amount} पठाउनुहोस्";
@@ -1980,7 +1980,7 @@
 "StarsReactionTerms" = "Stars पठाएर तपाईं {link} मा सहमत हुनुहुन्छ";
 "StarsReactionLinkText" = "सेवाका सर्तहरू";
 "StarsReactionLink" = "https://telegram.org/tos/stars";
-"AriaMiniApp" = "{bot} Mini App";
+"AriaMiniApp" = "{bot} मिनी एप";
 "BrowserMoreTabs_one" = "{title} र {count} अन्य";
 "BrowserMoreTabs_other" = "{title} र {count} अन्य";
 "PrizeCredits2_one" = "तपाईंको पुरस्कार {count} Star हो।";
@@ -2023,7 +2023,7 @@
 "PrivacyGiftsInfo" = "कुनै निश्चित प्रेषकहरूबाट आएका उपहारहरू तपाईंको प्रोफाइलमा अरूले देख्नुअघि तपाईंको स्वीकृति चाहिने वा नचाहिने छान्नुहोस्।";
 "PrivacyAcceptedGiftTitle" = "स्वीकार गरिएका उपहार प्रकारहरू";
 "PrivacyAcceptedGiftInfo" = "अरूले तपाईंलाई पठाउन सक्ने उपहारका प्रकारहरू छान्नुहोस्।";
-"PrivacyValueBots" = "Mini Apps";
+"PrivacyValueBots" = "मिनी एपहरू";
 "PrivacyGiftLimitedEdition" = "सीमित-संस्करण";
 "PrivacyGiftUnlimited" = "असीमित";
 "PrivacyGiftUnique" = "अद्वितीय";
@@ -2394,8 +2394,8 @@
 "ActionGiftPremiumTitle_other" = "{months} महिनाको Premium";
 "ActionGiftPremiumDuration" = "{duration} Premium";
 "ActionGiftPremiumText" = "विशेष Telegram सुविधाहरूको लागि सब्सक्रिप्सन।";
-"ActionGiftStarsTitle_one" = "{amount} Star";
-"ActionGiftStarsTitle_other" = "{amount} Stars";
+"ActionGiftStarsTitle_one" = "{amount} स्टार";
+"ActionGiftStarsTitle_other" = "{amount} स्टार";
 "ActionGiftStarsText" = "Telegram मा कन्टेन्ट र सेवाहरू अनलक गर्न Stars प्रयोग गर्नुहोस्।";
 "GramAmount" = "💎{amount}";
 "GramAmountIconLast" = "{amount}💎";
@@ -2947,7 +2947,7 @@
 "GiftAuctionListRound" = "{total} मध्ये {current} राउन्ड";
 "GiftAuctionActiveTitle" = "सक्रिय लिलामीहरू";
 "GiftAuctionNoActive" = "तपाईं कुनै पनि लिलामीमा सहभागी हुनुहुन्न";
-"StarGiftInfoTitle" = "Telegram Gifts";
+"StarGiftInfoTitle" = "Telegram उपहारहरू";
 "StarGiftInfoSubtitle" = "उपहारहरू संकलन योग्य वस्तुहरू हुन् जसलाई तपाईं ट्रेड गर्न वा आफ्नो प्रोफाइलमा देखाउन सक्नुहुन्छ।";
 "StarGiftInfoUniqueTitle" = "अद्वितीय";
 "StarGiftInfoUniqueSubtitle" = "अद्वितीय नम्बर, मोडेल, ब्याकड्रप र प्रतीक प्राप्त गर्न आफ्ना उपहारहरू अपग्रेड गर्नुहोस्।";
@@ -2955,7 +2955,7 @@
 "StarGiftInfoTradableSubtitle" = "आफ्नो उपहार Telegram वा तेस्रो-पक्ष NFT मार्केटप्लेसहरूमा बेच्नुहोस्।";
 "StarGiftInfoWearableTitle" = "लगाउन मिल्ने";
 "StarGiftInfoWearableSubtitle" = "उपहारहरूलाई आफ्नो प्रोफाइलमा देखाउनुहोस् र तिनलाई आफ्नो कभर वा स्टाटसको रूपमा सेट गर्नुहोस्।";
-"StarGift" = "Star Gift";
+"StarGift" = "स्टार उपहार";
 "SettingsItemPrivacyPasskeys" = "पासकीहरू";
 "SettingsItemPrivacyOn" = "सक्षम गरिएको छ";
 "SettingsItemPrivacyOff" = "असक्षम गरिएको छ";
