@@ -13,11 +13,13 @@ import { buildStringsPack, type LocalLangMeta } from '../../../util/data/readFal
  * source strings, 'en' rules are correct enough - the translated values read the same either way.
  */
 export const BCGRAM_LANGUAGES: Record<string, LocalLangMeta> = {
+  bn: { langCode: 'bn', name: 'Bengali', nativeName: 'বাংলা', pluralCode: 'bn' },
   ne: { langCode: 'ne', name: 'Nepali', nativeName: 'नेपाली', pluralCode: 'ne' },
   vi: { langCode: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', pluralCode: 'vi' },
 };
 
 const LOADERS: Record<string, () => Promise<{ default: string }>> = {
+  bn: () => import('./bn.strings?raw'),
   ne: () => import('./ne.strings?raw'),
   vi: () => import('./vi.strings?raw'),
 };
