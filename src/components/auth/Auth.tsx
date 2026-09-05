@@ -87,7 +87,7 @@ const Auth = ({
     }
   }
 
-  return (
+  const screen = (
     <Transition
       activeKey={getActiveKey()}
       name="fade"
@@ -96,6 +96,19 @@ const Auth = ({
     >
       {getScreen()}
     </Transition>
+  );
+
+  return (
+    <>
+      {screen}
+      <div className="unofficial-notice">
+        Unofficial Telegram client based on Telegram Web A
+        {' · source: '}
+        <a href="https://github.com/yucci0817/telegram-tt" target="_blank" rel="noopener noreferrer">
+          github.com/yucci0817/telegram-tt
+        </a>
+      </div>
+    </>
   );
 };
 
