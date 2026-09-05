@@ -19,6 +19,7 @@ import { requestPermission, subscribe, unsubscribe } from '../../../util/notific
 import requestActionTimeout from '../../../util/requestActionTimeout';
 import { getServerTime } from '../../../util/serverTime';
 import { callApi } from '../../../api/gramjs';
+import { getBcgramLanguages } from '../../../assets/localization/bcgram';
 import { buildApiInputPrivacyRules } from '../../helpers';
 import { addActionHandler, getGlobal, getPromiseActions, setGlobal } from '../../index';
 import {
@@ -428,8 +429,19 @@ addActionHandler('loadLanguages', async (global): Promise<void> => {
     return;
   }
 
+  // BCGram: append the packs we ship for languages Telegram has none of.
+  // The server's list comes first, so if Telegram ever publishes one of these, theirs wins
+  // and ours drops out on its own - no code change needed at that point.
+  const serverCodes = new Set(result.map(({ langCode }) => langCode));
+  const local = getBcgramLanguages()
+    .filter(({ langCode }) => !serverCodes.has(langCode))
+    .map(({ langCode, name, nativeName, pluralCode }) => ({
+      langCode, name, nativeName, pluralCode, stringsCount: 0, translatedCount: 0,
+      translationsUrl: `https://translations.telegram.org/${langCode}/weba`,
+    }));
+
   global = getGlobal();
-  global = updateSharedSettings(global, { languages: result });
+  global = updateSharedSettings(global, { languages: [...result, ...local] });
   setGlobal(global);
 });
 

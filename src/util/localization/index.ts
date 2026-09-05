@@ -32,6 +32,7 @@ import { getBasicListFormat } from '../browser/intlListFormat';
 import { notifyLangpackUpdate } from '../browser/multitab';
 import { createCallbackManager } from '../callbacks';
 import readFallbackStrings from '../data/readFallbackStrings';
+import { isBcgramLanguage, loadBcgramLangData } from '../../assets/localization/bcgram';
 import { initialEstablishmentPromise, isCurrentTabMaster } from '../establishMultitabRole';
 import { omit, unique } from '../iteratees';
 import { replaceInStringsWithTeact } from '../replaceWithTeact';
@@ -104,6 +105,10 @@ async function loadFallbackPack() {
 }
 
 async function fetchDifference() {
+  // BCGram: our own packs have no version on the server, so asking for a difference either
+  // returns nothing or overwrites the bundled strings. Stop here for them.
+  if (langPack && isBcgramLanguage(langPack.langCode)) return;
+
   if (!langPack || !language) {
     if (DEBUG) {
       // eslint-disable-next-line no-console
@@ -208,6 +213,16 @@ function updateLangPack(newLangPack: LangPack) {
 export async function initLocalization(langCode: string, canLoadFromServer?: boolean) {
   if (language) return;
 
+  // BCGram: same reason as in `changeLanguage` - read our own packs from the build, not the cache.
+  if (isBcgramLanguage(langCode)) {
+    await loadAndChangeLanguage(langCode);
+    loadFallbackPack();
+    translationFn = createTranslationFn();
+    scheduleCallbacks();
+    localizationReady.resolve();
+    return;
+  }
+
   const cachedData = await loadCachedLangData(langCode);
   if (cachedData) {
     langPack = cachedData.langPack;
@@ -245,6 +260,16 @@ export async function loadAndChangeLanguage(langCode: string, shouldCheckCache?:
     }
   }
 
+  // BCGram: a language we ship ourselves never goes to the server.
+  // This is the boot path - `initLocalization` lands here when nothing is cached yet.
+  const localData = await loadBcgramLangData(langCode);
+  if (localData) {
+    updateLangPack(localData.langPack);
+    updateLanguage(localData.language);
+    await cacheLangData(localData);
+    return undefined;
+  }
+
   await initialEstablishmentPromise;
   if (!isCurrentTabMaster()) return undefined;
 
@@ -271,6 +296,21 @@ export function requestLangPackDifference(langCode: string) {
 
 export async function changeLanguage(newLanguage: ApiLanguage) {
   if (langPack && language?.langCode === newLanguage.langCode) return;
+
+  // BCGram: our own packs are read from the build every time, ahead of the cache.
+  // The cache is keyed by language code alone, so a cached pack would keep being served after the
+  // bundled .strings is replaced. There is no network call to save here, so reading the file wins.
+  // This is also the half that runs when the operator picks the language in Settings - wiring only
+  // the boot path in `loadAndChangeLanguage` would leave this one asking the server for a pack
+  // that does not exist there.
+  if (isBcgramLanguage(newLanguage.langCode)) {
+    const localData = await loadBcgramLangData(newLanguage.langCode);
+    if (!localData) return;
+    updateLangPack(localData.langPack);
+    updateLanguage(localData.language);
+    await cacheLangData(localData);   // written for other tabs to read; never read back here
+    return;
+  }
 
   const cachedData = await loadCachedLangData(newLanguage.langCode);
   if (cachedData) {
