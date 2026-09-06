@@ -117,7 +117,7 @@ const AuthCode = ({
     void oldSetLanguage(suggestedLanguage, () => {
       unmarkIsLoading();
 
-      setSharedSettingOption({ language: suggestedLanguage });
+      setSharedSettingOption({ language: suggestedLanguage, wasLanguageSetManually: true });
     });
   });
 

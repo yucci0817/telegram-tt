@@ -14,6 +14,8 @@ export interface SharedSettings {
   theme: ThemeKey;
   themes: Partial<Record<ThemeKey, IThemeSettings>>;
   language: string;
+  // BCGram: marks that the user picked this on purpose, so `?hl=` and the boot default never override it.
+  wasLanguageSetManually?: boolean;
   languages?: ApiLanguage[];
   performance: PerformanceType;
   messageTextSize: number;

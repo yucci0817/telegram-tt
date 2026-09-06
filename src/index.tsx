@@ -4,15 +4,17 @@ import './global/init';
 
 import TeactDOM from './lib/teact/teact-dom';
 import {
-  getActions, getGlobal,
+  getActions, getGlobal, setGlobal,
 } from './global';
 
 import {
   DEBUG, STRICTERDOM_ENABLED,
 } from './config';
+import { isBcgramLanguage } from './assets/localization/bcgram';
 import { enableStrict, requestMutation } from './lib/fasterdom/fasterdom';
 import { selectChat, selectCurrentMessageList, selectPeerFullInfo, selectTabState } from './global/selectors';
 import { selectSharedSettings } from './global/selectors/sharedState';
+import { updateSharedSettings } from './global/reducers';
 import { betterView } from './util/betterView';
 import { IS_TAURI } from './util/browser/globalEnvironment';
 import listenOtherClients from './util/browser/listenOtherClients';
@@ -65,6 +67,27 @@ async function init() {
   });
 
   await initGlobal();
+
+  // BCGram BCG-2: decide the boot language here — after `setGlobal` in `initGlobal` (util/init.ts:44) has
+  // loaded the cached shared state, and before `getActions().init()` below starts the SharedWorker
+  // (`initSharedState`, global/init.ts:58), whose `fullState` reply replaces the whole shared state and
+  // would erase anything written after it. `initLocalization` (further down) reads the value from here.
+  // Priority: the user's saved choice (`wasLanguageSetManually`) always wins; otherwise a valid `?hl=`
+  // (BCGram's own 8 packs or an officially known code); otherwise `ja`. An unknown `?hl=` is ignored, not thrown.
+  {
+    const bootGlobal = getGlobal();
+    if (!selectSharedSettings(bootGlobal).wasLanguageSetManually) {
+      // Kept in sync with the `LangCode` union (types/index.ts:142) — Telegram's officially bundled codes.
+      const OFFICIAL_LANG_CODES = new Set([
+        'en', 'ar', 'be', 'ca', 'nl', 'fr', 'de', 'id', 'it', 'ko', 'ms', 'fa', 'pl', 'pt-br', 'ru', 'es', 'tr', 'uk', 'uz',
+      ]);
+      const hl = new URLSearchParams(window.location.search).get('hl')?.toLowerCase();
+      const language = hl && (isBcgramLanguage(hl) || OFFICIAL_LANG_CODES.has(hl)) ? hl : 'ja';
+
+      setGlobal(updateSharedSettings(bootGlobal, { language }));
+    }
+  }
+
   getActions().init();
 
   getActions().updateShouldEnableDebugLog();

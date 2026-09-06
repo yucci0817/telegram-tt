@@ -73,22 +73,28 @@ const SettingsLanguage: FC<OwnProps & StateProps> = ({
     void oldSetLanguage(langCode as LangCode, () => {
       unmarkIsLoading();
 
-      setSharedSettingOption({ language: langCode });
+      setSharedSettingOption({ language: langCode, wasLanguageSetManually: true });
     });
   });
 
   const options = useMemo(() => {
     if (!languages) return undefined;
-    const currentLangCode = (window.navigator.language || 'en').toLowerCase();
-    const shortLangCode = currentLangCode.substr(0, 2);
+
+    // BCGram: 日本語 → 英語 → 残りは英語名 (ApiLanguage.name) の ABC 順。
+    const getPriority = (langCode: string) => {
+      if (langCode === 'ja') return 0;
+      if (langCode === 'en') return 1;
+      return 2;
+    };
 
     return languages.map(({ langCode, nativeName, name }) => ({
       value: langCode,
       label: nativeName,
       subLabel: name,
       isLoading: langCode === selectedLanguage && isLoading,
-    } satisfies ItemPickerOption)).sort((a) => {
-      return currentLangCode && (a.value === currentLangCode || a.value === shortLangCode) ? -1 : 0;
+    } satisfies ItemPickerOption)).sort((a, b) => {
+      const priorityDiff = getPriority(a.value) - getPriority(b.value);
+      return priorityDiff !== 0 ? priorityDiff : a.subLabel.localeCompare(b.subLabel);
     });
   }, [isLoading, languages, selectedLanguage]);
 
