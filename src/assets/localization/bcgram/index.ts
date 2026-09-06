@@ -18,6 +18,8 @@ export const BCGRAM_LANGUAGES: Record<string, LocalLangMeta> = {
   my: { langCode: 'my', name: 'Burmese', nativeName: 'မြန်မာ', pluralCode: 'my' },
   ne: { langCode: 'ne', name: 'Nepali', nativeName: 'नेपाली', pluralCode: 'ne' },
   tl: { langCode: 'tl', name: 'Tagalog', nativeName: 'Tagalog', pluralCode: 'tl' },
+  th: { langCode: 'th', name: 'Thai', nativeName: 'ไทย', pluralCode: 'th' },
+  ja: { langCode: 'ja', name: 'Japanese', nativeName: '日本語', pluralCode: 'ja' },
   vi: { langCode: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', pluralCode: 'vi' },
 };
 
@@ -27,6 +29,8 @@ const LOADERS: Record<string, () => Promise<{ default: string }>> = {
   my: () => import('./my.strings?raw'),
   ne: () => import('./ne.strings?raw'),
   tl: () => import('./tl.strings?raw'),
+  th: () => import('./th.strings?raw'),
+  ja: () => import('./ja.strings?raw'),
   vi: () => import('./vi.strings?raw'),
 };
 
