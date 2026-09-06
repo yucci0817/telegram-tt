@@ -16,6 +16,7 @@ import { selectChat, selectCurrentMessageList, selectPeerFullInfo, selectTabStat
 import { selectSharedSettings } from './global/selectors/sharedState';
 import { updateSharedSettings } from './global/reducers';
 import { betterView } from './util/betterView';
+import { initBcgramEmbedBridge } from './util/bcgramEmbed';
 import { IS_TAURI } from './util/browser/globalEnvironment';
 import listenOtherClients from './util/browser/listenOtherClients';
 import { requestGlobal, subscribeToMultitabBroadcastChannel } from './util/browser/multitab';
@@ -88,6 +89,16 @@ async function init() {
     }
   }
 
+  // BCGram C7-e (fork 1st stage): flag the document when opened as `?embed=chat` so CSS
+  // (Main.scss) can hide the chat-list column and `util/bcgramEmbed.ts` knows to bridge the
+  // chat list / openChat with the parent window. Kept OUTSIDE the `wasLanguageSetManually`
+  // block above — inside it, a user who already set their language manually would never get
+  // the flag. Kept on the DOM (not global state): this is a per-document display switch, and
+  // global state would propagate it to other tabs via the SharedWorker.
+  if (new URLSearchParams(window.location.search).get('embed') === 'chat') {
+    document.documentElement.classList.add('embed-chat');
+  }
+
   getActions().init();
 
   getActions().updateShouldEnableDebugLog();
@@ -96,6 +107,10 @@ async function init() {
   const global = getGlobal();
 
   initLocalization(selectSharedSettings(global).language, true);
+
+  // BCGram C7-e (fork 1st stage): no-ops unless the `embed-chat` flag above is set AND this
+  // page is actually running inside an iframe (see util/bcgramEmbed.ts for the guard).
+  initBcgramEmbedBridge();
 
   subscribeToMasterChange((isMasterTab) => {
     getActions()

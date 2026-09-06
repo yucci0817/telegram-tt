@@ -34,6 +34,17 @@
   }
 }
 
+// BCGram C7-e (fork 1st stage): `?embed=chat` flags <html> with `embed-chat` (see index.tsx) so
+// BridgeCore can embed just the conversation and show its own chat list in its own left panel.
+// Hiding these two columns leaves the `1fr` track from the grid above to take the full width.
+// Does not touch the 925/926px breakpoint or any other layout rule.
+html.embed-chat {
+  #LeftColumn,
+  #FoldersSidebar {
+    display: none;
+  }
+}
+
 .tauri-drag-region {
   position: absolute;
   z-index: 2;
