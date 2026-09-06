@@ -168,14 +168,22 @@ export async function oldSetLanguage(langCode: LangCode, callback?: NoneToVoidFu
   if (!newLangPack) {
     newLangPack = await fetchRemote(langCode);
     if (!newLangPack) {
-      // A language BCGram ships itself has no pack on the server. `loadAndChangeLanguage` above has
-      // already switched the app to the bundled one, so report back - the caller clears its loading
-      // state in the callback.
-      if (callback) {
-        callback();
-      }
+      // A language BCGram ships itself has no pack on the server. Fall back to the server's
+      // English pack so untranslated keys still show real text instead of the raw key name.
+      // `fetchRemote` fetches/caches under its own `langCode` argument (here `en`), never under
+      // the originally requested `langCode`, so this substitution can't shadow a real pack for
+      // this language if the server adds one later.
+      newLangPack = langCode !== FALLBACK_LANG_CODE ? await fetchRemote(FALLBACK_LANG_CODE) : undefined;
+      if (!newLangPack) {
+        // Even English is unavailable. `loadAndChangeLanguage` above has already switched the
+        // app to the bundled one, so report back - the caller clears its loading state in the
+        // callback.
+        if (callback) {
+          callback();
+        }
 
-      return;
+        return;
+      }
     }
   }
 
