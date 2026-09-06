@@ -168,6 +168,13 @@ export async function oldSetLanguage(langCode: LangCode, callback?: NoneToVoidFu
   if (!newLangPack) {
     newLangPack = await fetchRemote(langCode);
     if (!newLangPack) {
+      // A language BCGram ships itself has no pack on the server. `loadAndChangeLanguage` above has
+      // already switched the app to the bundled one, so report back - the caller clears its loading
+      // state in the callback.
+      if (callback) {
+        callback();
+      }
+
       return;
     }
   }
