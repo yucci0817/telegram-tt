@@ -2352,6 +2352,8 @@ export interface LangPair {
   'SettingsPerformanceDesc': undefined;
   'SettingsStickersDesc': undefined;
   'SettingsSessionsDesc': undefined;
+  'AuthConnectionHelpTitle': undefined;
+  'AuthConnectionHelpText': undefined;
 }
 
 export interface LangPairWithVariables<V = LangVariable> {

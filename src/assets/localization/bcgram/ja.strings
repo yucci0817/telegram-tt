@@ -3211,3 +3211,5 @@
 "SettingsStickersDesc" = "ステッカー、絵文字、リアクション";
 "SettingsLanguageDesc" = "{language}、メッセージの翻訳";
 "SettingsSessionsDesc" = "セッション、自動終了";
+"AuthConnectionHelpTitle" = "接続できないときは";
+"AuthConnectionHelpText" = "ブラウザの保護機能（BraveのShieldsなど）がこの画面の通信を止めていることがあります。アドレスバーの盾のアイコンから、このサイトの Shields をオフにして、ページを再読み込みしてください。";

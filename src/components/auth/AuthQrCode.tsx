@@ -26,6 +26,7 @@ import useMultiaccountInfo from '../../hooks/useMultiaccountInfo';
 import AnimatedIcon from '../common/AnimatedIcon';
 import Button from '../ui/Button';
 import Loading from '../ui/Loading';
+import AuthConnectionHelp from './AuthConnectionHelp';
 
 type StateProps = {
   auth: GlobalState['auth'];
@@ -187,12 +188,15 @@ const AuthCode = ({
           </Button>
         )}
       </div>
-      <div className="unofficial-notice">
-        Unofficial Telegram client based on Telegram Web A
-        {' · source: '}
-        <a href="https://github.com/yucci0817/telegram-tt" target="_blank" rel="noopener noreferrer">
-          github.com/yucci0817/telegram-tt
-        </a>
+      <div className="auth-bottom-notices">
+        <AuthConnectionHelp isConnected={isConnected} />
+        <div className="unofficial-notice">
+          Unofficial Telegram client based on Telegram Web A
+          {' · source: '}
+          <a href="https://github.com/yucci0817/telegram-tt" target="_blank" rel="noopener noreferrer">
+            github.com/yucci0817/telegram-tt
+          </a>
+        </div>
       </div>
     </div>
   );

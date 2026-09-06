@@ -3211,3 +3211,5 @@
 "SettingsStickersDesc" = "Stickers, Emoji, Reactions";
 "SettingsLanguageDesc" = "{language}, Translate Messages";
 "SettingsSessionsDesc" = "Sessions, Automatically terminate";
+"AuthConnectionHelpTitle" = "If you can't connect";
+"AuthConnectionHelpText" = "A browser privacy feature (like Brave's Shields) can sometimes block this screen from connecting. Turn off Shields for this site from the shield icon in the address bar, then reload the page.";

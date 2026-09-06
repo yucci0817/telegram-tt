@@ -26,6 +26,7 @@ import Button from '../ui/Button';
 import Checkbox from '../ui/Checkbox';
 import InputText from '../ui/InputText';
 import Loading from '../ui/Loading';
+import AuthConnectionHelp from './AuthConnectionHelp';
 import CountryCodeInput from './CountryCodeInput';
 
 import monkeyPath from '../../assets/monkey.svg';
@@ -321,12 +322,15 @@ const AuthPhoneNumber = ({
           )}
         </form>
       </div>
-      <div className="unofficial-notice">
-        Unofficial Telegram client based on Telegram Web A
-        {' · source: '}
-        <a href="https://github.com/yucci0817/telegram-tt" target="_blank" rel="noopener noreferrer">
-          github.com/yucci0817/telegram-tt
-        </a>
+      <div className="auth-bottom-notices">
+        <AuthConnectionHelp isConnected={isConnected} />
+        <div className="unofficial-notice">
+          Unofficial Telegram client based on Telegram Web A
+          {' · source: '}
+          <a href="https://github.com/yucci0817/telegram-tt" target="_blank" rel="noopener noreferrer">
+            github.com/yucci0817/telegram-tt
+          </a>
+        </div>
       </div>
     </div>
   );
