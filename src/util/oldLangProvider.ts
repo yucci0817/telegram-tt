@@ -151,6 +151,13 @@ export function getTranslationFn(): LangFn {
   return translationFn;
 }
 
+// An empty object (`{}`) is still truthy, so a cache entry or server response with no strings
+// must be treated the same as "no pack" - otherwise it silently skips `fetchRemote` and the
+// English fallback below, and every key renders as its raw key name instead of real text.
+function isUsableOldLangPack(pack: unknown): pack is ApiOldLangPack {
+  return Boolean(pack) && typeof pack === 'object' && Object.keys(pack as object).length > 0;
+}
+
 /**
  * @deprecated Migrate to `changeLanguage` in `util/localization.ts` instead
  */
@@ -164,8 +171,15 @@ export async function oldSetLanguage(langCode: LangCode, callback?: NoneToVoidFu
     return;
   }
 
-  let newLangPack = await cacheApi.fetch(LANG_CACHE_NAME, langCode, cacheApi.Type.Json);
+  const cachedLangPack = await cacheApi.fetch(LANG_CACHE_NAME, langCode, cacheApi.Type.Json);
+  let newLangPack = isUsableOldLangPack(cachedLangPack) ? cachedLangPack : undefined;
   if (!newLangPack) {
+    if (cachedLangPack) {
+      // Cached pack exists but has no usable strings (e.g. a stale empty `{}`). Remove it so
+      // future loads retry `fetchRemote` instead of hitting this dead entry again.
+      await cacheApi.remove(LANG_CACHE_NAME, langCode);
+    }
+
     newLangPack = await fetchRemote(langCode);
     if (!newLangPack) {
       // A language BCGram ships itself has no pack on the server. Fall back to the server's
@@ -222,7 +236,7 @@ export function setTimeFormat(timeFormat: TimeFormat) {
 
 async function fetchRemote(langCode: string): Promise<ApiOldLangPack | undefined> {
   const remote = await callApi('oldFetchLangPack', { sourceLangPacks: LANG_PACKS, langCode });
-  if (remote) {
+  if (remote && isUsableOldLangPack(remote.langPack)) {
     await cacheApi.save(LANG_CACHE_NAME, langCode, remote.langPack);
     return remote.langPack;
   }
