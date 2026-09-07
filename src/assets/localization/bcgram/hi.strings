@@ -3211,3 +3211,5 @@
 "SettingsStickersDesc" = "स्टिकर, इमोजी, प्रतिक्रियाएं";
 "SettingsLanguageDesc" = "{language}, संदेश अनुवाद";
 "SettingsSessionsDesc" = "सत्र, अपने आप समाप्त करें";
+"AuthConnectionHelpTitle" = "यदि आप कनेक्ट नहीं कर पा रहे हैं";
+"AuthConnectionHelpText" = "ब्राउज़र की गोपनीयता सुविधा (जैसे Brave की Shields) कभी-कभी इस स्क्रीन को कनेक्ट होने से रोक सकती है। एड्रेस बार में शील्ड आइकन से इस साइट के लिए Shields बंद करें, फिर पेज को पुनः लोड करें।";

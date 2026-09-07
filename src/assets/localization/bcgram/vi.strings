@@ -3211,3 +3211,5 @@
 "SettingsStickersDesc" = "Nhãn dán, Biểu tượng cảm xúc, Lượt bày tỏ cảm xúc";
 "SettingsLanguageDesc" = "{language}, Dịch tin nhắn";
 "SettingsSessionsDesc" = "Phiên đăng nhập, Tự động kết thúc";
+"AuthConnectionHelpTitle" = "Nếu bạn không thể kết nối";
+"AuthConnectionHelpText" = "Tính năng bảo mật của trình duyệt (như Shields của Brave) đôi khi có thể chặn màn hình này kết nối. Hãy tắt Shields cho trang web này từ biểu tượng chiếc khiên trên thanh địa chỉ, sau đó tải lại trang.";

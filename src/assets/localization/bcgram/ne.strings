@@ -3211,3 +3211,5 @@
 "SettingsStickersDesc" = "स्टिकरहरू, इमोजी, प्रतिक्रियाहरू";
 "SettingsLanguageDesc" = "{language}, सन्देशहरू अनुवाद गर्नुहोस्";
 "SettingsSessionsDesc" = "सत्रहरू, स्वचालित समाप्ति";
+"AuthConnectionHelpTitle" = "यदि तपाईं जडान गर्न सक्नुहुन्न भने";
+"AuthConnectionHelpText" = "ब्राउजरको गोपनीयता सुविधा (जस्तै Brave को Shields) ले कहिलेकाहीँ यो स्क्रिनलाई जडान हुनबाट रोक्न सक्छ। ठेगाना पट्टीको ढाल (shield) आइकनबाट यो साइटका लागि Shields बन्द गर्नुहोस्, त्यसपछि पृष्ठ पुन: लोड गर्नुहोस्।";

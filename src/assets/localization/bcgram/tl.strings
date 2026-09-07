@@ -3211,3 +3211,5 @@
 "SettingsStickersDesc" = "Mga Sticker, Emoji, Reaksyon";
 "SettingsLanguageDesc" = "{language}, Isalin ang mga Mensahe";
 "SettingsSessionsDesc" = "Mga Session, Awtomatikong tapusin";
+"AuthConnectionHelpTitle" = "Kung hindi ka makakonekta";
+"AuthConnectionHelpText" = "Maaaring harangan ng privacy feature ng browser (tulad ng Shields ng Brave) ang pagkonekta ng screen na ito minsan. I-off ang Shields para sa site na ito mula sa shield icon sa address bar, pagkatapos ay i-reload ang page.";
