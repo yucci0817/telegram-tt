@@ -36,12 +36,28 @@
 
 // BCGram C7-e (fork 1st stage): `?embed=chat` flags <html> with `embed-chat` (see index.tsx) so
 // BridgeCore can embed just the conversation and show its own chat list in its own left panel.
-// Hiding these two columns leaves the `1fr` track from the grid above to take the full width.
 // Does not touch the 925/926px breakpoint or any other layout rule.
+//
+// C7-e-fix §2-4: `#LeftColumn` used to be `display:none` outright, which also removed the
+// hamburger menu, search box and "new chat" pencil that live inside it (they have no other home).
+// Collapsing it to zero width instead — only while it isn't the open pane — keeps those controls
+// reachable: BridgeCore can ask for the column via `bcgram:toggleLeftColumn` (see
+// util/bcgramEmbed.ts), which flips this page's own `isLeftColumnShown` state and adds the
+// existing `#Main.left-column-open` class (Main.tsx / useShowTransition) — at that point this
+// override simply stops matching, and every other (non-embed) `#LeftColumn` rule in this file
+// takes over unchanged, so the reveal looks and behaves exactly like it does outside embed mode.
+// `#FoldersSidebar` is intentionally left as `display:none` — out of scope for this fix.
 html.embed-chat {
-  #LeftColumn,
   #FoldersSidebar {
     display: none;
+  }
+
+  #Main:not(.left-column-open) #LeftColumn {
+    width: 0;
+    min-width: 0;
+    max-width: 0;
+    overflow: hidden;
+    pointer-events: none;
   }
 }
 
