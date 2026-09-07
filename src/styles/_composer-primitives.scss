@@ -1,10 +1,10 @@
 @use "mixins";
 
 :root {
-  --composer-pill-radius: 1.5rem;
-  --composer-control-radius: 1.25rem;
+  --composer-pill-radius: 5px;
+  --composer-control-radius: 5px;
   --composer-height: 3rem;
-  --composer-embed-radius: 0.5rem;
+  --composer-embed-radius: 4px;
   --composer-pill-padding: 0.25rem;
   --composer-row-gap: 0.25rem;
   --composer-bottom-gap: 1rem;

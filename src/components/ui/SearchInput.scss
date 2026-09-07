@@ -7,7 +7,7 @@
   width: 100%;
   padding-inline-end: 0.1875rem;
   border: 2px solid var(--color-chat-hover);
-  border-radius: 1.375rem;
+  border-radius: 5px;
 
   color: rgba(var(--color-text-secondary-rgb), 0.5);
 
@@ -51,7 +51,7 @@
       calc(0.4375rem - var(--border-width)) calc(0.625rem - var(--border-width))
       calc(0.5rem - var(--border-width)) calc(0.75rem - var(--border-width));
     border: none !important;
-    border-radius: 1.375rem;
+    border-radius: 5px;
 
     background-color: transparent !important;
     box-shadow: none !important;

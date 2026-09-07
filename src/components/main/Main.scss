@@ -52,6 +52,10 @@ html.embed-chat {
     display: none;
   }
 
+  #LeftColumn {
+    margin-left: 2.75rem;
+  }
+
   #Main:not(.left-column-open) #LeftColumn {
     width: 0;
     min-width: 0;
