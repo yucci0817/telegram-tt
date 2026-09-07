@@ -48,9 +48,9 @@
   $color-borders: #dadce0;
   $color-dividers: #c8c6cc;
   $color-dividers-android: #E7E7E7;
-  $color-item-hover: #e4dfda;
-  $color-item-active: #e0dbd6;
-  $color-chat-hover: #e4dfda;
+  $color-item-hover: #c9d9dd;
+  $color-item-active: #b8ccce;
+  $color-chat-hover: #c9d9dd;
   $color-chat-active: #3390ec;
   $color-selection: #3993fb;
 
@@ -67,15 +67,15 @@
   $color-message-story-mention-to: #74bcff;
 
   :root {
-    --color-background: #ede8e2;
-    --color-background-compact-menu: #ede8e2BB;
-    --color-background-compact-menu-reactions: #ede8e2EB;
+    --color-background: #d9e6e9;
+    --color-background-compact-menu: #d9e6e9BB;
+    --color-background-compact-menu-reactions: #d9e6e9EB;
     --color-background-compact-menu-hover: #000000B2;
     --color-background-menu-separator: #0000001a;
-    --color-background-selected: #e4dfda;
-    --color-background-secondary: #e4dfda;
-    --color-background-secondary-accent: #d9d4cf;
-    --color-background-sidebar: #d9d4cf;
+    --color-background-selected: #c9d9dd;
+    --color-background-secondary: #c9d9dd;
+    --color-background-secondary-accent: #bed0d5;
+    --color-background-sidebar: #bed0d5;
     --color-background-own: #{$color-light-green};
     --color-background-own-selected: #{color.adjust($color-light-green, $lightness: -10%, $space: hsl)};
     --color-text: #{$color-black};
