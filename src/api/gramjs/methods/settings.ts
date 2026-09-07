@@ -64,6 +64,11 @@ import { getClient, invokeRequest, uploadFile } from './client';
 
 const BETA_LANG_CODES = ['ar', 'fa', 'id', 'ko', 'uz', 'en'];
 
+// BCG-5: 旧形式パックだけ、別のサーバー側コードで取りに行く言語（BCGram の日本語）。
+// `BETA_LANG_CODES` とは別表にする — あちらは「-raw を付ける」意味の配列で、用途を混ぜない。
+// `ja` の値をこの 1 行で 'ja-raw' <-> 'ja-beta' に差し替えて 2 通り測る。
+const OLD_PACK_LANG_OVERRIDES: Record<string, string> = { ja: 'ja-raw' };
+
 export function updateProfile({
   firstName,
   lastName,
@@ -538,7 +543,8 @@ export async function oldFetchLangPack({ sourceLangPacks, langCode }: {
   const results = await Promise.all(sourceLangPacks.map((langPack) => {
     return invokeRequest(new GramJs.langpack.GetLangPack({
       langPack,
-      langCode: BETA_LANG_CODES.includes(langCode) ? `${langCode}-raw` : langCode,
+      langCode: OLD_PACK_LANG_OVERRIDES[langCode]
+        ?? (BETA_LANG_CODES.includes(langCode) ? `${langCode}-raw` : langCode),
     }));
   }));
 
