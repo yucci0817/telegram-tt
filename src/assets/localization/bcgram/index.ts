@@ -21,6 +21,14 @@ export const BCGRAM_LANGUAGES: Record<string, LocalLangMeta> = {
   th: { langCode: 'th', name: 'Thai', nativeName: 'ไทย', pluralCode: 'th' },
   ja: { langCode: 'ja', name: 'Japanese', nativeName: '日本語', pluralCode: 'ja' },
   vi: { langCode: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', pluralCode: 'vi' },
+  km: { langCode: 'km', name: 'Khmer', nativeName: 'ខ្មែរ', pluralCode: 'km' },
+  ky: { langCode: 'ky', name: 'Kyrgyz', nativeName: 'Кыргызча', pluralCode: 'ky' },
+  lo: { langCode: 'lo', name: 'Lao', nativeName: 'ລາວ', pluralCode: 'lo' },
+  mn: { langCode: 'mn', name: 'Mongolian', nativeName: 'Монгол', pluralCode: 'mn' },
+  si: { langCode: 'si', name: 'Sinhala', nativeName: 'සිංහල', pluralCode: 'si' },
+  ta: { langCode: 'ta', name: 'Tamil', nativeName: 'தமிழ்', pluralCode: 'ta' },
+  ur: { langCode: 'ur', name: 'Urdu', nativeName: 'اردو', pluralCode: 'ur' },
+  uz: { langCode: 'uz', name: 'Uzbek', nativeName: 'Oʻzbekcha', pluralCode: 'uz' },
 };
 
 const LOADERS: Record<string, () => Promise<{ default: string }>> = {
@@ -32,6 +40,14 @@ const LOADERS: Record<string, () => Promise<{ default: string }>> = {
   th: () => import('./th.strings?raw'),
   ja: () => import('./ja.strings?raw'),
   vi: () => import('./vi.strings?raw'),
+  km: () => import('./km.strings?raw'),
+  ky: () => import('./ky.strings?raw'),
+  lo: () => import('./lo.strings?raw'),
+  mn: () => import('./mn.strings?raw'),
+  si: () => import('./si.strings?raw'),
+  ta: () => import('./ta.strings?raw'),
+  ur: () => import('./ur.strings?raw'),
+  uz: () => import('./uz.strings?raw'),
 };
 
 export function isBcgramLanguage(langCode: string): boolean {
