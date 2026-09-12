@@ -9,9 +9,13 @@
 //      (server-resolved) when the parent supplies one, otherwise by the local numeric id;
 //   4) report back `bcgram:openChatFailed` when neither path actually resolves a chat, instead of
 //      leaving the parent's view spinning forever;
-//   5) accept `bcgram:toggleLeftColumn` from the parent and toggle this page's own left column.
+//   5) accept `bcgram:toggleLeftColumn` from the parent and toggle this page's own left column;
+//   6) accept `bcgram:startCall` from the parent and start a call (voice, or video when asked) with
+//      that chat's user via `requestMasterAndRequestCall`; report back `bcgram:startCallFailed` when
+//      the id isn't a resolvable user, instead of doing nothing.
 // See: 指示書/AP/2026-09-07_BCGram_弾C7-e第1段_embed-chatと一覧の受け渡し_実装指示書.md §3-3/§3-4
 // and 指示書/AP/2026-09-07_Chat_弾C7-e-fix_開かない原因と左列の復活_実装指示書.md §2.
+// and 指示書/AP/2026-09-12_CM-6b_Telegramドアの通話_実装指示書.md §2-1 (job 6, bcgram:startCall).
 
 import type { ApiPeer } from '../api/types';
 import type { GlobalState } from '../global/types';
@@ -21,10 +25,13 @@ import { getActions, getGlobal } from '../global';
 import { getMainUsername } from '../global/helpers/users';
 import { getMessageSummaryText } from '../global/helpers/messageSummary';
 import { getPeerFullTitle } from '../global/helpers/peers';
-import { selectChat, selectChatLastMessage, selectPeer } from '../global/selectors';
+import {
+  selectChat, selectChatLastMessage, selectPeer, selectUser,
+} from '../global/selectors';
 import { selectThreadReadState } from '../global/selectors/threads';
 import { ALL_FOLDER_ID } from '../config';
 import { addCallback } from '../lib/teact/teactn';
+import { isUserId } from './entities/ids';
 import { getOrderedIds } from './folderManager';
 import { getTranslationFn } from './localization';
 import { throttle } from './schedulers';
@@ -66,6 +73,15 @@ interface BcgramOpenChatMessage {
 
 interface BcgramToggleLeftColumnMessage {
   type: 'bcgram:toggleLeftColumn';
+}
+
+// CM-6b §2-1: parent asks to start a call with this chat's user. `chatId` here is the same id
+// space `bcgram:openChat` already uses; for a private chat that id IS the user id (see
+// `requestMasterAndRequestCall({ userId: chatId })` at HeaderActions.tsx:216 for precedent).
+interface BcgramStartCallMessage {
+  type: 'bcgram:startCall';
+  chatId: string | number;
+  video?: boolean;
 }
 
 let lastSentSignature: string | undefined;
@@ -168,6 +184,15 @@ function isBcgramToggleLeftColumnMessage(data: unknown): data is BcgramToggleLef
   );
 }
 
+function isBcgramStartCallMessage(data: unknown): data is BcgramStartCallMessage {
+  return Boolean(
+    data
+    && typeof data === 'object'
+    && (data as { type?: unknown }).type === 'bcgram:startCall'
+    && 'chatId' in (data as object),
+  );
+}
+
 // C7-e-fix §2-2: after asking to open a chat (by id or by username), check back once whether it
 // actually resolved. `selectChat` is exactly what MessageList.tsx keys its "known chat" render
 // path on (see 実装指示書 §1-2), so this mirrors what the user would actually see.
@@ -203,6 +228,20 @@ function setupReceiver(parentOrigin: string) {
 
     if (isBcgramToggleLeftColumnMessage(data)) {
       getActions().toggleLeftColumn();
+      return;
+    }
+
+    if (isBcgramStartCallMessage(data)) {
+      const chatId = String(data.chatId);
+      // CM-6b §2-1: only a resolvable user can be called (no group calls via this door). Fail
+      // fast and synchronously — same reasoning as OPEN_CHAT_FAILURE_CHECK_MS above: the parent
+      // only ever asks for a chat it already knows, so there's no real network wait to bridge.
+      if (!isUserId(chatId) || !selectUser(getGlobal(), chatId)) {
+        window.parent.postMessage({ type: 'bcgram:startCallFailed', chatId, reason: 'user_not_found' }, parentOrigin);
+        return;
+      }
+      // requestCall(payload) 相当。userId/isVideo は fork 内部の語彙（親からは chatId/video で届く）。
+      getActions().requestMasterAndRequestCall({ userId: chatId, isVideo: !!data.video });
     }
   });
 }
