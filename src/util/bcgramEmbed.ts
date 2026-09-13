@@ -16,6 +16,10 @@
 // See: 指示書/AP/2026-09-07_BCGram_弾C7-e第1段_embed-chatと一覧の受け渡し_実装指示書.md §3-3/§3-4
 // and 指示書/AP/2026-09-07_Chat_弾C7-e-fix_開かない原因と左列の復活_実装指示書.md §2.
 // and 指示書/AP/2026-09-12_CM-6b_Telegramドアの通話_実装指示書.md §2-1 (job 6, bcgram:startCall).
+//   7) send `bcgram:authState { loggedIn }` once right after `bcgram:ready`, then again whenever
+//      `auth.state` changes (dedup so the same value isn't sent twice in a row) — lets the parent
+//      know whether it can route a call through BCGram or must ask the operator to sign in first.
+// and 指示書/AP/2026-09-13_CM-8_Chatの既定をBCGramにする_実装指示書.md §2-4.
 
 import type { ApiPeer } from '../api/types';
 import type { GlobalState } from '../global/types';
@@ -84,7 +88,14 @@ interface BcgramStartCallMessage {
   video?: boolean;
 }
 
+// CM-8 §2-4: outgoing only (this page never receives this type back).
+interface BcgramAuthStateMessage {
+  type: 'bcgram:authState';
+  loggedIn: boolean;
+}
+
 let lastSentSignature: string | undefined;
+let lastSentAuthLoggedIn: boolean | undefined;
 
 function getAllowedParentOrigin(): string | undefined {
   let origin: string | undefined;
@@ -165,6 +176,28 @@ function setupSender(parentOrigin: string) {
   addCallback(sendThrottled);
   // Send once immediately so the parent doesn't wait for the next global-state change.
   sendThrottled(getGlobal());
+}
+
+// CM-8 §2-4: tells the parent whether this page is signed in to Telegram, so it can decide
+// whether pressing "Call" while the Telegram view is showing can actually reach BCGram, or must
+// tell the operator to sign in first. Dedup on the boolean value only (unlike sendChatList's
+// full-payload dedup) since this is a single flag, not a list.
+function isBcgramLoggedIn(global: GlobalState): boolean {
+  return global.auth.state === 'authorizationStateReady';
+}
+
+function sendAuthState(global: GlobalState, parentOrigin: string) {
+  const loggedIn = isBcgramLoggedIn(global);
+  if (loggedIn === lastSentAuthLoggedIn) return;
+  lastSentAuthLoggedIn = loggedIn;
+  const message: BcgramAuthStateMessage = { type: 'bcgram:authState', loggedIn };
+  window.parent.postMessage(message, parentOrigin);
+}
+
+function setupAuthStateSender(parentOrigin: string) {
+  addCallback((global: GlobalState) => sendAuthState(global, parentOrigin));
+  // Send the initial state once immediately (mirrors setupSender above).
+  sendAuthState(getGlobal(), parentOrigin);
 }
 
 function isBcgramOpenChatMessage(data: unknown): data is BcgramOpenChatMessage {
@@ -258,4 +291,6 @@ export function initBcgramEmbedBridge() {
   // C7-e-fix §2-1: tell the parent this page's receiver is actually listening now, so it can
   // (re)send the chat it wants opened — including on a reload, when this fires again from scratch.
   window.parent.postMessage({ type: 'bcgram:ready' }, parentOrigin);
+  // CM-8 §2-4: right next to bcgram:ready — initial login state, then re-sent on every change.
+  setupAuthStateSender(parentOrigin);
 }
