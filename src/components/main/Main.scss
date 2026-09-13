@@ -74,8 +74,13 @@ html.embed-chat {
       box-shadow: none;
     }
 
+    /* CM-10b-fix（CEO 指摘 2026-09-13）: ハンバーガーと検索窓は左寄せにする。
+       カルテのパネルは BridgeCore 側の一覧ボタン（左上）を出していないので、
+       左に逃げを作る必要が無かった（`toggleLeftColumnLabel` を渡していない）。
+       被っているのは右上の「新しいタブへ開く」ボタン（TelegramPane・`top-0 right-0`・32px）で、
+       `.SearchInput` は `width: 100%` ＝左を詰めても右端は動かないため、右を空ける。 */
     #LeftColumn .left-header {
-      padding-left: 2.75rem;   /* BridgeCore 側の一覧ボタン（32px）を避ける逃げ */
+      padding-right: 2.5rem;   /* 32px のボタン ＋ 8px の間 */
     }
   }
 }
