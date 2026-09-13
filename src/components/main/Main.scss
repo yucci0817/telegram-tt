@@ -63,6 +63,21 @@ html.embed-chat {
     overflow: hidden;
     pointer-events: none;
   }
+
+  @media (max-width: 600px) {
+    #LeftColumn {
+      width: 100%;
+      min-width: 0;
+      max-width: none;
+      margin: 0;            /* 既存の margin-left: 2.75rem をここで打ち消す */
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    #LeftColumn .left-header {
+      padding-left: 2.75rem;   /* BridgeCore 側の一覧ボタン（32px）を避ける逃げ */
+    }
+  }
 }
 
 .tauri-drag-region {

@@ -7,6 +7,12 @@
   &:not(:first-child) {
     margin-left: 1rem;
   }
+
+  :global(html.embed-chat) & {
+    @media (max-width: 600px) {
+      width: 3.75rem;   /* 60px */
+    }
+  }
 }
 
 .button {

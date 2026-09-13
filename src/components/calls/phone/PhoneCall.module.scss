@@ -162,6 +162,14 @@
   position: absolute;
   bottom: 1rem;
   display: flex;
+
+  :global(html.embed-chat) & {
+    @media (max-width: 600px) {
+      left: 0;
+      right: 0;
+      justify-content: center;
+    }
+  }
 }
 
 .leave {
