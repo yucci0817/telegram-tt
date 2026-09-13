@@ -82,6 +82,13 @@ html.embed-chat {
     #LeftColumn .left-header {
       padding-right: 2.5rem;   /* 32px のボタン ＋ 8px の間 */
     }
+
+    /* CM-10d（CEO 実見 2026-09-13）: 会話を開いている時も、右上の三点リーダーが
+       同じ「新しいタブへ開く」ボタンに隠れて押せない。一覧のヘッダーと同じだけ右を空ける。
+       `reboot.css:7` で box-sizing は border-box なので、余白は内側に食って幅は増えない。 */
+    .MiddleHeader {
+      padding-right: 2.5rem;
+    }
   }
 }
 
