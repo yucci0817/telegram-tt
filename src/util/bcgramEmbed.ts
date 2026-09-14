@@ -136,6 +136,19 @@ interface BcgramEnsureGroupMessage {
   title: string;
   /** Telegram user ids to add up front. May be empty — people can join by the invite link instead. */
   memberIds?: (string | number)[];
+  /**
+   * 3LINE 自動参加: Telegram @usernames to add to the group as soon as it exists.
+   *
+   * The parent has usernames, not ids — the company registers each person's `@username` in the
+   * 12 会社情報 screen, and an id is not something a human can type. Resolving a username is a
+   * server round trip that only a signed-in client can make, which is exactly this page, so the
+   * parent sends the names and this page turns them into ids and adds them.
+   *
+   * Why this is not `memberIds`: `createChannel` is given `memberIds` BEFORE the group exists and
+   * needs real ids; these are added AFTER, via `addChatMembers`. Mixing them in one field would
+   * feed a username string to createChannel, where it silently does nothing.
+   */
+  memberUsernames?: string[];
 }
 
 // CM-15: outgoing. The parent stores `chatId` so the group opens directly from then on.
@@ -157,6 +170,24 @@ interface BcgramGroupCreatedMessage {
    * so this is NOT a failure — the parent can ask for the link again later.
    */
   inviteLink?: string;
+  /**
+   * 3LINE 自動参加: `memberUsernames`（`BcgramEnsureGroupMessage` 側）のうち実際に追加できた
+   * @username（先頭の `@` は付けない）。
+   *
+   * The parent's operator screen wants to say "本部を入れました" out loud instead of guessing, so
+   * this lists exactly who made it in. Omitted entirely (not sent as an empty array) when this
+   * page never attempted auto-add at all — i.e. the incoming `memberUsernames` was absent or
+   * empty — so the parent can tell "didn't try" apart from "tried and got zero".
+   */
+  addedUsernames?: string[];
+  /**
+   * 3LINE 自動参加: 同上のうち見つからない／追加できなかった @username。
+   *
+   * Same reasoning as `addedUsernames`, in reverse: a company can mistype a colleague's
+   * @username, and the operator needs to hear "この人は見つかりませんでした" instead of silently
+   * losing a member with no explanation. Also omitted when auto-add was never attempted.
+   */
+  failedUsernames?: string[];
 }
 
 // CM-15: outgoing. Sent instead of `groupCreated` when the group could not be made, so the parent
@@ -343,9 +374,20 @@ function isBcgramEnsureGroupMessage(data: unknown): data is BcgramEnsureGroupMes
 // the same way the group itself was watched for. If it never arrives, still report the group as
 // created (with no link) rather than failing: the group is real, and reporting a failure would
 // make the parent tell the operator that nothing happened when something did.
-function watchForInviteLink(chatId: string, parentOrigin: string) {
+//
+// 3LINE 自動参加: `addedUsernames` / `failedUsernames` are that step's result, already decided by
+// the caller (`watchForCreatedGroup` below) before this function is even called — this function
+// only carries them into the same outgoing message as the invite link, it does not compute them.
+function watchForInviteLink(
+  chatId: string,
+  parentOrigin: string,
+  addedUsernames?: string[],
+  failedUsernames?: string[],
+) {
   const send = (inviteLink?: string) => {
-    const message: BcgramGroupCreatedMessage = { type: 'bcgram:groupCreated', chatId, inviteLink };
+    const message: BcgramGroupCreatedMessage = {
+      type: 'bcgram:groupCreated', chatId, inviteLink, addedUsernames, failedUsernames,
+    };
     window.parent.postMessage(message, parentOrigin);
   };
 
@@ -373,11 +415,86 @@ function watchForInviteLink(chatId: string, parentOrigin: string) {
   }, ENSURE_GROUP_POLL_MS);
 }
 
+// 3LINE 自動参加: `memberUsernames` travels through a `postMessage` from the parent, so by the time
+// it reaches here it is untyped `unknown` as far as the runtime is concerned — the type guard
+// `isBcgramEnsureGroupMessage` above only checks `title`. A non-array value must not crash this
+// handler, and `@` prefixes, blank strings, and duplicates must not reach `fetchChatByUsername` as
+// literal characters.
+function normalizeMemberUsernames(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  const seen = new Set<string>();
+  for (const raw of value) {
+    if (typeof raw !== 'string') continue;
+    const username = (raw.startsWith('@') ? raw.slice(1) : raw).trim();
+    if (username) seen.add(username);
+  }
+  return Array.from(seen);
+}
+
+// 3LINE 自動参加: turn each @username into a real chat id the same way `sendInviteToUsername` below
+// resolves one (`fetchChatByUsername`, same bounded `SEND_INVITE_TIMEOUT_MS` per name — a stalled
+// lookup must not hang the whole batch forever). All names are looked up at once, not one at a
+// time, so one slow name doesn't add its own ~10s on top of every other name's.
+//
+// One bad name (typo, deleted account) must not block the rest, so a failure is recorded and the
+// batch continues rather than throwing — and the group itself already exists by the time this
+// runs, so even a total failure here is reported back as an empty `added` list next to a full
+// `failed` list, never as `ensureGroupFailed`: telling the parent "the group failed" when it
+// exists would be a worse lie than telling it "0 of 3 people made it in".
+//
+// `added` means "resolved to a user and asked Telegram to add them", not a confirmed join —
+// Telegram can still decline a specific person afterwards for their own privacy settings, exactly
+// as it would if the operator added them by hand in the app.
+async function addMembersByUsername(
+  chatId: string,
+  usernames: string[],
+): Promise<{ added: string[]; failed: string[] }> {
+  const resolutions = await Promise.all(usernames.map(async (username) => {
+    try {
+      const chat = await Promise.race([
+        fetchChatByUsername(getGlobal(), username),
+        pause(SEND_INVITE_TIMEOUT_MS).then(() => undefined),
+      ]);
+      return { username, id: chat?.id };
+    } catch {
+      return { username, id: undefined };
+    }
+  }));
+
+  const added: string[] = [];
+  const failed: string[] = [];
+  const memberIds: string[] = [];
+  for (const { username, id } of resolutions) {
+    if (id) {
+      memberIds.push(id);
+      added.push(username);
+    } else {
+      failed.push(username);
+    }
+  }
+
+  // 誰も解決できなかった時は addChatMembers 自体を呼ばない（空の memberIds を渡す意味がない）。
+  if (memberIds.length > 0) {
+    getActions().addChatMembers({ chatId, memberIds });
+  }
+
+  return { added, failed };
+}
+
 // CM-15: `createGroupChat` is fire-and-forget (the action writes the created chat into global
 // state and opens it). Rather than reaching into the action's internal progress flag, watch for a
 // chat id that did not exist before and carries the title we asked for — the same "check what the
 // operator would actually see" approach `scheduleOpenChatFailureCheck` already takes.
-function watchForCreatedGroup(title: string, before: Set<string>, parentOrigin: string) {
+//
+// 3LINE 自動参加: `usernames` has already been through `normalizeMemberUsernames` by the time it
+// gets here (the caller in `setupReceiver` below does that) — this function just carries it.
+function watchForCreatedGroup(
+  title: string,
+  before: Set<string>,
+  parentOrigin: string,
+  usernames: string[],
+) {
   let tries = 0;
   const timer = window.setInterval(() => {
     tries += 1;
@@ -387,7 +504,15 @@ function watchForCreatedGroup(title: string, before: Set<string>, parentOrigin: 
     );
     if (createdId) {
       window.clearInterval(timer);
-      watchForInviteLink(createdId, parentOrigin);
+      // 既存の流儀どおり、window.setInterval のコールバックの中では await しない — 見つけた時点で
+      // clearInterval してから非同期処理に入る。usernames が空なら何も待たず素通しする。
+      if (usernames.length === 0) {
+        watchForInviteLink(createdId, parentOrigin);
+      } else {
+        void addMembersByUsername(createdId, usernames).then(({ added, failed }) => {
+          watchForInviteLink(createdId, parentOrigin, added, failed);
+        });
+      }
       return;
     }
     if (tries >= ENSURE_GROUP_MAX_TRIES) {
@@ -536,7 +661,11 @@ function setupReceiver(parentOrigin: string) {
         isSuperGroup: true,
         memberIds: (data.memberIds ?? []).map(String),
       });
-      watchForCreatedGroup(data.title, before, parentOrigin);
+      // 3LINE 自動参加: createChannel の memberIds はここでは変えない — グループがまだ無い時点で
+      // 効く実 id 専用の欄（上のコメントの通り）。memberUsernames はグループが実在してから
+      // addChatMembers で追加する（上の watchForCreatedGroup -> addMembersByUsername の流れ）。
+      const memberUsernames = normalizeMemberUsernames(data.memberUsernames);
+      watchForCreatedGroup(data.title, before, parentOrigin, memberUsernames);
       return;
     }
 
