@@ -34,7 +34,8 @@ import { getMainUsername } from '../global/helpers/users';
 import { getMessageSummaryText } from '../global/helpers/messageSummary';
 import { getPeerFullTitle } from '../global/helpers/peers';
 import {
-  selectChat, selectChatLastMessage, selectCurrentMessageList, selectIsChatWithSelf, selectPeer, selectUser,
+  selectChat, selectChatFullInfo, selectChatLastMessage, selectCurrentMessageList, selectIsChatWithSelf,
+  selectPeer, selectUser,
 } from '../global/selectors';
 import { selectThreadReadState } from '../global/selectors/threads';
 import { ALL_FOLDER_ID } from '../config';
@@ -61,6 +62,8 @@ const OPEN_CHAT_FAILURE_CHECK_MS = 3000;
 // one, so a failure reports back instead of leaving the operator waiting on a button forever.
 const ENSURE_GROUP_POLL_MS = 400;
 const ENSURE_GROUP_MAX_TRIES = 25; // ≈10s
+// 弾 CM-16: how long to wait for the new group's default invite link (same 400ms tick).
+const INVITE_LINK_MAX_TRIES = 25; // ≈10s
 
 interface BcgramChatListItem {
   chatId: string;
@@ -127,6 +130,18 @@ interface BcgramEnsureGroupMessage {
 interface BcgramGroupCreatedMessage {
   type: 'bcgram:groupCreated';
   chatId: string;
+  /**
+   * 弾 CM-16: the group's default invite link (`t.me/+<hash>`), when it is available in time.
+   *
+   * This is what the parent actually hands to each operator: an account that has NOT joined yet
+   * cannot open the group by id at all (`openChat` only resolves chats this client already knows,
+   * and a supergroup id is useless without a per-account `access_hash`). The link is the only
+   * value that lets somebody else get in — so the parent stores it next to `chatId`.
+   *
+   * Absent when the link did not arrive within the budget. The group still exists in that case,
+   * so this is NOT a failure — the parent can ask for the link again later.
+   */
+  inviteLink?: string;
 }
 
 // CM-15: outgoing. Sent instead of `groupCreated` when the group could not be made, so the parent
@@ -270,6 +285,43 @@ function isBcgramEnsureGroupMessage(data: unknown): data is BcgramEnsureGroupMes
   );
 }
 
+// 弾 CM-16: the group exists — now fetch its default invite link and send both to the parent.
+//
+// Telegram gives every newly created group a default invite link, but it only reaches this client
+// inside the chat's FULL info, which is a separate request. So ask for it, then watch for the link
+// the same way the group itself was watched for. If it never arrives, still report the group as
+// created (with no link) rather than failing: the group is real, and reporting a failure would
+// make the parent tell the operator that nothing happened when something did.
+function watchForInviteLink(chatId: string, parentOrigin: string) {
+  const send = (inviteLink?: string) => {
+    const message: BcgramGroupCreatedMessage = { type: 'bcgram:groupCreated', chatId, inviteLink };
+    window.parent.postMessage(message, parentOrigin);
+  };
+
+  const existing = selectChatFullInfo(getGlobal(), chatId)?.inviteLink;
+  if (existing) {
+    send(existing);
+    return;
+  }
+
+  getActions().loadFullChat({ chatId, force: true });
+
+  let tries = 0;
+  const timer = window.setInterval(() => {
+    tries += 1;
+    const inviteLink = selectChatFullInfo(getGlobal(), chatId)?.inviteLink;
+    if (inviteLink) {
+      window.clearInterval(timer);
+      send(inviteLink);
+      return;
+    }
+    if (tries >= INVITE_LINK_MAX_TRIES) {
+      window.clearInterval(timer);
+      send(undefined);
+    }
+  }, ENSURE_GROUP_POLL_MS);
+}
+
 // CM-15: `createGroupChat` is fire-and-forget (the action writes the created chat into global
 // state and opens it). Rather than reaching into the action's internal progress flag, watch for a
 // chat id that did not exist before and carries the title we asked for — the same "check what the
@@ -284,8 +336,7 @@ function watchForCreatedGroup(title: string, before: Set<string>, parentOrigin: 
     );
     if (createdId) {
       window.clearInterval(timer);
-      const message: BcgramGroupCreatedMessage = { type: 'bcgram:groupCreated', chatId: createdId };
-      window.parent.postMessage(message, parentOrigin);
+      watchForInviteLink(createdId, parentOrigin);
       return;
     }
     if (tries >= ENSURE_GROUP_MAX_TRIES) {
@@ -361,8 +412,17 @@ function setupReceiver(parentOrigin: string) {
         return;
       }
       const before = new Set(Object.keys(global.chats.byId));
-      getActions().createGroupChat({
+      // 弾 CM-16: a SUPERGROUP (`megagroup`), not a basic group.
+      //
+      // 3LINE is created by the company account BEFORE any operator exists, so the group has to be
+      // creatable with nobody but its creator. `messages.createChat` (basic group) takes a required
+      // `users:Vector<InputUser>` and answers `USERS_TOO_FEW` when it is empty — this very file
+      // handles that error at chats.ts:1184 — so the previous `createGroupChat` call could never
+      // have worked for the intended flow. `channels.createChannel` has no `users` parameter at
+      // all: creator-only creation is the protocol's own default, and people are added afterwards.
+      getActions().createChannel({
         title: data.title,
+        isSuperGroup: true,
         memberIds: (data.memberIds ?? []).map(String),
       });
       watchForCreatedGroup(data.title, before, parentOrigin);
