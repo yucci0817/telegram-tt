@@ -24,26 +24,37 @@
 //      `auth.state` changes (dedup so the same value isn't sent twice in a row) — lets the parent
 //      know whether it can route a call through BCGram or must ask the operator to sign in first.
 // and 指示書/AP/2026-09-13_CM-8_Chatの既定をBCGramにする_実装指示書.md §2-4.
+//   8) accept `bcgram:openInvite` from the parent and join a 3LINE group via its invite link
+//      (`getActions().openTelegramLink`). Report back `bcgram:openInviteFailed` with a `reason` —
+//      `not_logged_in` or `invalid_link` (not a `https://t.me/+<hash>` link) — instead of staying
+//      silent;
+//   9) accept `bcgram:sendInvite` from the parent and send `text` to the Telegram user behind
+//      `username` (resolved via `fetchChatByUsername`, same as `openChatByUsername` resolves one).
+//      Report back `bcgram:sendInviteSent { username }` on success, or `bcgram:sendInviteFailed`
+//      with a `reason` — `not_logged_in`, `user_not_found`, or `send_failed` — instead of staying
+//      silent.
+
+import { addCallback } from '../lib/teact/teactn';
+import { getActions, getGlobal } from '../global';
 
 import type { ApiPeer } from '../api/types';
 import type { GlobalState } from '../global/types';
-
 import { MAIN_THREAD_ID } from '../api/types';
-import { getActions, getGlobal } from '../global';
-import { getMainUsername } from '../global/helpers/users';
+
+import { ALL_FOLDER_ID, TME_LINK_PREFIX } from '../config';
+import { fetchChatByUsername } from '../global/actions/api/chats';
 import { getMessageSummaryText } from '../global/helpers/messageSummary';
 import { getPeerFullTitle } from '../global/helpers/peers';
+import { getMainUsername } from '../global/helpers/users';
 import {
   selectChat, selectChatFullInfo, selectChatLastMessage, selectCurrentMessageList, selectIsChatWithSelf,
   selectPeer, selectUser,
 } from '../global/selectors';
 import { selectThreadReadState } from '../global/selectors/threads';
-import { ALL_FOLDER_ID } from '../config';
-import { addCallback } from '../lib/teact/teactn';
 import { isUserId } from './entities/ids';
 import { getOrderedIds } from './folderManager';
 import { getTranslationFn } from './localization';
-import { throttle } from './schedulers';
+import { pause, throttle } from './schedulers';
 
 // Only these two origins may exchange messages with this page. Never widen this with '*'.
 const ALLOWED_PARENT_ORIGINS = [
@@ -64,6 +75,10 @@ const ENSURE_GROUP_POLL_MS = 400;
 const ENSURE_GROUP_MAX_TRIES = 25; // ≈10s
 // 弾 CM-16: how long to wait for the new group's default invite link (same 400ms tick).
 const INVITE_LINK_MAX_TRIES = 25; // ≈10s
+// 3LINE follow-up: bcgram:sendInvite resolves @username via a real server round trip
+// (fetchChatByUsername), so give it the same ≈10s budget as group creation above — bounded, so a
+// stalled connection still reports back instead of leaving the operator's button spinning forever.
+const SEND_INVITE_TIMEOUT_MS = 10000;
 
 interface BcgramChatListItem {
   chatId: string;
@@ -150,6 +165,42 @@ interface BcgramGroupCreatedMessage {
 interface BcgramEnsureGroupFailedMessage {
   type: 'bcgram:ensureGroupFailed';
   reason: 'not_logged_in' | 'create_failed';
+}
+
+// 3LINE follow-up (2026-09-14, CEO-directed design): an account that hasn't joined a 3LINE group
+// yet can only get in via its invite link (see the `BcgramGroupCreatedMessage.inviteLink` comment
+// above) — so the parent hands that link back here and asks this page, running as the operator's
+// own signed-in account, to open it.
+interface BcgramOpenInviteMessage {
+  type: 'bcgram:openInvite';
+  link: string;
+}
+
+// 3LINE follow-up: outgoing. Sent instead of a silent no-op when the link can't be opened (the same
+// rule as `startCallFailed` / `ensureGroupFailed` — never fail silently).
+interface BcgramOpenInviteFailedMessage {
+  type: 'bcgram:openInviteFailed';
+  reason: 'not_logged_in' | 'invalid_link';
+}
+
+// 3LINE follow-up: send the invite link (or any `text`) straight to one Telegram user by
+// `username`, so the operator doesn't have to leave BCGram to paste it into a separate chat.
+interface BcgramSendInviteMessage {
+  type: 'bcgram:sendInvite';
+  username: string;
+  text: string;
+}
+
+// 3LINE follow-up: outgoing, on success.
+interface BcgramSendInviteSentMessage {
+  type: 'bcgram:sendInviteSent';
+  username: string;
+}
+
+// 3LINE follow-up: outgoing, on failure — never fail silently (same rule as above).
+interface BcgramSendInviteFailedMessage {
+  type: 'bcgram:sendInviteFailed';
+  reason: 'not_logged_in' | 'user_not_found' | 'send_failed';
 }
 
 let lastSentSignature: string | undefined;
@@ -371,6 +422,66 @@ function scheduleOpenChatFailureCheck(chatId: string, parentOrigin: string) {
   }, OPEN_CHAT_FAILURE_CHECK_MS);
 }
 
+// The parent only ever sends the invite link CM-16 itself stored (`https://t.me/+<hash>`, taken
+// straight from Telegram's own `ChatInviteExported.link`) — reject anything else instead of handing
+// `openTelegramLink` a URL it was never meant to parse.
+function isTmeInviteLink(link: string): boolean {
+  const prefix = `${TME_LINK_PREFIX}+`;
+  return link.startsWith(prefix) && link.length > prefix.length;
+}
+
+function isBcgramOpenInviteMessage(data: unknown): data is BcgramOpenInviteMessage {
+  return Boolean(
+    data
+    && typeof data === 'object'
+    && (data as { type?: unknown }).type === 'bcgram:openInvite'
+    && typeof (data as { link?: unknown }).link === 'string',
+  );
+}
+
+function isBcgramSendInviteMessage(data: unknown): data is BcgramSendInviteMessage {
+  return Boolean(
+    data
+    && typeof data === 'object'
+    && (data as { type?: unknown }).type === 'bcgram:sendInvite'
+    && typeof (data as { username?: unknown }).username === 'string'
+    && typeof (data as { text?: unknown }).text === 'string',
+  );
+}
+
+// Resolve `username` the same way `openChatByUsername`'s own resolution step does
+// (`fetchChatByUsername`, chats.ts) — called directly rather than through the `openChatByUsername`
+// action, since that action only opens the chat as a UI side effect and never hands the resolved
+// chat back to its caller. It's a real server round trip, so it gets the same bounded budget as
+// ENSURE_GROUP_MAX_TRIES's group creation, instead of leaving the operator's button waiting forever.
+async function sendInviteToUsername(username: string, text: string, parentOrigin: string) {
+  const fail = (reason: BcgramSendInviteFailedMessage['reason']) => {
+    const message: BcgramSendInviteFailedMessage = { type: 'bcgram:sendInviteFailed', reason };
+    window.parent.postMessage(message, parentOrigin);
+  };
+
+  try {
+    const chat = await Promise.race([
+      fetchChatByUsername(getGlobal(), username),
+      pause(SEND_INVITE_TIMEOUT_MS).then(() => undefined),
+    ]);
+    if (!chat) {
+      fail('user_not_found');
+      return;
+    }
+
+    getActions().sendMessage({
+      messageList: { chatId: chat.id, threadId: MAIN_THREAD_ID, type: 'thread' },
+      text,
+    });
+
+    const message: BcgramSendInviteSentMessage = { type: 'bcgram:sendInviteSent', username };
+    window.parent.postMessage(message, parentOrigin);
+  } catch {
+    fail('send_failed');
+  }
+}
+
 function setupReceiver(parentOrigin: string) {
   window.addEventListener('message', (event: MessageEvent) => {
     // Defense in depth: both the sender's origin and the window it actually came from must check out.
@@ -455,6 +566,44 @@ function setupReceiver(parentOrigin: string) {
       }
       // requestCall(payload) 相当。userId/isVideo は fork 内部の語彙（親からは chatId/video で届く）。
       getActions().requestMasterAndRequestCall({ userId: chatId, isVideo: !!data.video });
+    }
+
+    // 3LINE follow-up: join a company's group by the invite link CM-16 already stored next to it.
+    // Both failure reasons are known synchronously — no post-hoc "did it actually open" check like
+    // scheduleOpenChatFailureCheck's, because unlike a plain chat id, an invite link either looks
+    // right or it doesn't, and login state is already in `global` before openTelegramLink runs.
+    if (isBcgramOpenInviteMessage(data)) {
+      const global = getGlobal();
+      if (!isBcgramLoggedIn(global)) {
+        const message: BcgramOpenInviteFailedMessage = {
+          type: 'bcgram:openInviteFailed', reason: 'not_logged_in',
+        };
+        window.parent.postMessage(message, parentOrigin);
+        return;
+      }
+      if (!isTmeInviteLink(data.link)) {
+        const message: BcgramOpenInviteFailedMessage = {
+          type: 'bcgram:openInviteFailed', reason: 'invalid_link',
+        };
+        window.parent.postMessage(message, parentOrigin);
+        return;
+      }
+      getActions().openTelegramLink({ url: data.link });
+      return;
+    }
+
+    // 3LINE follow-up: hand the invite link to one more person directly, without the operator
+    // leaving BCGram to paste it into a separate chat themselves.
+    if (isBcgramSendInviteMessage(data)) {
+      const global = getGlobal();
+      if (!isBcgramLoggedIn(global)) {
+        const message: BcgramSendInviteFailedMessage = {
+          type: 'bcgram:sendInviteFailed', reason: 'not_logged_in',
+        };
+        window.parent.postMessage(message, parentOrigin);
+        return;
+      }
+      void sendInviteToUsername(data.username, data.text, parentOrigin);
     }
   });
 }
