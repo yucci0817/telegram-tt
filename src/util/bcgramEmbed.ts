@@ -57,6 +57,10 @@ const SEND_THROTTLE_MS = 2000;
 // case here — the parent only ever asks for chats it already showed in the list or resolved from
 // chat_contacts), so this is generous headroom, not a real network round trip budget.
 const OPEN_CHAT_FAILURE_CHECK_MS = 3000;
+// CM-15: creating a group is a real server round trip, so give it a real budget — but a bounded
+// one, so a failure reports back instead of leaving the operator waiting on a button forever.
+const ENSURE_GROUP_POLL_MS = 400;
+const ENSURE_GROUP_MAX_TRIES = 25; // ≈10s
 
 interface BcgramChatListItem {
   chatId: string;
@@ -98,6 +102,39 @@ interface BcgramStartCallMessage {
 interface BcgramAuthStateMessage {
   type: 'bcgram:authState';
   loggedIn: boolean;
+}
+
+// CM-15 (CEO 2026-09-14): 3LINE is a dedicated Telegram GROUP per AP company, and the operator
+// joins it with their own account. The open question was who creates that group — a Telegram BOT
+// cannot create groups at all (API limitation), so a bot-driven flow is impossible. This page,
+// however, runs as the operator's own account, so it can create the group itself: the operator
+// becomes the creator (and therefore a member) without any manual step in the Telegram app.
+//
+// Creating a group is a real, visible side effect on a real account, so this is NEVER automatic —
+// the parent only sends this after the operator explicitly asks for it.
+interface BcgramEnsureGroupMessage {
+  type: 'bcgram:ensureGroup';
+  /** Group title, e.g. `3LINE / <company name>`. */
+  title: string;
+  /** Telegram user ids to add up front. May be empty — people can join by the invite link instead. */
+  memberIds?: (string | number)[];
+}
+
+// CM-15: outgoing. The parent stores `chatId` so the group opens directly from then on.
+// Inviting more people afterwards is done in Telegram itself — that is the whole point of
+// 第0条 ("use it with the Telegram operations people already know"), so this page does not
+// build a second invite mechanism on top.
+interface BcgramGroupCreatedMessage {
+  type: 'bcgram:groupCreated';
+  chatId: string;
+}
+
+// CM-15: outgoing. Sent instead of `groupCreated` when the group could not be made, so the parent
+// can say so out loud rather than leaving the operator pressing a button that does nothing
+// (the same rule as `startCallFailed` — never fail silently).
+interface BcgramEnsureGroupFailedMessage {
+  type: 'bcgram:ensureGroupFailed';
+  reason: 'not_logged_in' | 'create_failed';
 }
 
 let lastSentSignature: string | undefined;
@@ -223,6 +260,44 @@ function isBcgramToggleLeftColumnMessage(data: unknown): data is BcgramToggleLef
   );
 }
 
+function isBcgramEnsureGroupMessage(data: unknown): data is BcgramEnsureGroupMessage {
+  return Boolean(
+    data
+    && typeof data === 'object'
+    && (data as { type?: unknown }).type === 'bcgram:ensureGroup'
+    && typeof (data as { title?: unknown }).title === 'string'
+    && (data as { title: string }).title.trim().length > 0,
+  );
+}
+
+// CM-15: `createGroupChat` is fire-and-forget (the action writes the created chat into global
+// state and opens it). Rather than reaching into the action's internal progress flag, watch for a
+// chat id that did not exist before and carries the title we asked for — the same "check what the
+// operator would actually see" approach `scheduleOpenChatFailureCheck` already takes.
+function watchForCreatedGroup(title: string, before: Set<string>, parentOrigin: string) {
+  let tries = 0;
+  const timer = window.setInterval(() => {
+    tries += 1;
+    const global = getGlobal();
+    const createdId = Object.keys(global.chats.byId).find(
+      (id) => !before.has(id) && global.chats.byId[id]?.title === title,
+    );
+    if (createdId) {
+      window.clearInterval(timer);
+      const message: BcgramGroupCreatedMessage = { type: 'bcgram:groupCreated', chatId: createdId };
+      window.parent.postMessage(message, parentOrigin);
+      return;
+    }
+    if (tries >= ENSURE_GROUP_MAX_TRIES) {
+      window.clearInterval(timer);
+      const message: BcgramEnsureGroupFailedMessage = {
+        type: 'bcgram:ensureGroupFailed', reason: 'create_failed',
+      };
+      window.parent.postMessage(message, parentOrigin);
+    }
+  }, ENSURE_GROUP_POLL_MS);
+}
+
 function isBcgramStartCallMessage(data: unknown): data is BcgramStartCallMessage {
   // CM-10a §2 段A-2: no `'chatId' in data` check here — `chatId` is optional (see
   // BcgramStartCallMessage above), and requiring the key would drop a chatId-less request at
@@ -269,6 +344,28 @@ function setupReceiver(parentOrigin: string) {
 
     if (isBcgramToggleLeftColumnMessage(data)) {
       getActions().toggleLeftColumn();
+      return;
+    }
+
+    // CM-15 (CEO 2026-09-14): create the 3LINE group for a work tab, as the operator's own
+    // account. A Telegram BOT cannot create groups at all, so this page — which is a real client
+    // signed in as the operator — is the only place this can happen without manual work in the
+    // Telegram app for every new AP. The operator ends up as the creator, hence a member.
+    if (isBcgramEnsureGroupMessage(data)) {
+      const global = getGlobal();
+      if (!isBcgramLoggedIn(global)) {
+        const message: BcgramEnsureGroupFailedMessage = {
+          type: 'bcgram:ensureGroupFailed', reason: 'not_logged_in',
+        };
+        window.parent.postMessage(message, parentOrigin);
+        return;
+      }
+      const before = new Set(Object.keys(global.chats.byId));
+      getActions().createGroupChat({
+        title: data.title,
+        memberIds: (data.memberIds ?? []).map(String),
+      });
+      watchForCreatedGroup(data.title, before, parentOrigin);
       return;
     }
 
