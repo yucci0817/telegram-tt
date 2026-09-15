@@ -371,7 +371,7 @@ const MessageList = ({
   const { addedMessageIds, areAddedMessagesOutgoing, previousLastCurrentMessageId } = addedMessageInfo || {};
 
   const isPrivate = isUserId(chatId);
-  const withUsers = Boolean((!isPrivate && !isChannelChat)
+  const withUsers = Boolean(!isChannelChat
     || isChatWithSelf || isSystemBotChat || isAnonymousForwards || isChannelWithAvatars);
 
   const liveTailStartOriginalId = useMemo(() => {
