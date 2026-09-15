@@ -122,6 +122,13 @@ interface BcgramAuthStateMessage {
   loggedIn: boolean;
 }
 
+// 3LINE 通話連動: outgoing. 現在開いているチャットが個人1対1（通話可能）かどうかを親へ伝える。
+interface BcgramCurrentChatMessage {
+  type: 'bcgram:currentChat';
+  chatId: string | null;
+  isDirectUser: boolean;
+}
+
 // CM-15 (CEO 2026-09-14): 3LINE is a dedicated Telegram GROUP per AP company, and the operator
 // joins it with their own account. The open question was who creates that group — a Telegram BOT
 // cannot create groups at all (API limitation), so a bot-driven flow is impossible. This page,
@@ -338,6 +345,36 @@ function setupAuthStateSender(parentOrigin: string) {
   addCallback((global: GlobalState) => sendAuthState(global, parentOrigin));
   // Send the initial state once immediately (mirrors setupSender above).
   sendAuthState(getGlobal(), parentOrigin);
+}
+
+// 3LINE 通話連動: いま開いているチャットが個人1対1（通話可能）かどうかを判定し、
+// 変化があった時だけ親へ送る（dedup）。
+let lastSentCurrentChatSignature: string | undefined;
+
+function isDirectUserChat(global: GlobalState): { chatId: string | null; isDirectUser: boolean } {
+  const currentMessageList = selectCurrentMessageList(global);
+  const chatId = currentMessageList?.chatId;
+  if (!chatId) return { chatId: null, isDirectUser: false };
+  const isDirect = isUserId(chatId) && !!selectUser(global, chatId) && !selectIsChatWithSelf(global, chatId);
+  return { chatId, isDirectUser: isDirect };
+}
+
+function sendCurrentChat(global: GlobalState, parentOrigin: string) {
+  const state = isDirectUserChat(global);
+  const signature = `${state.chatId}:${state.isDirectUser}`;
+  if (signature === lastSentCurrentChatSignature) return;
+  lastSentCurrentChatSignature = signature;
+  const message: BcgramCurrentChatMessage = {
+    type: 'bcgram:currentChat',
+    chatId: state.chatId,
+    isDirectUser: state.isDirectUser,
+  };
+  window.parent.postMessage(message, parentOrigin);
+}
+
+function setupCurrentChatSender(parentOrigin: string) {
+  addCallback((global: GlobalState) => sendCurrentChat(global, parentOrigin));
+  sendCurrentChat(getGlobal(), parentOrigin);
 }
 
 function isBcgramOpenChatMessage(data: unknown): data is BcgramOpenChatMessage {
@@ -751,4 +788,6 @@ export function initBcgramEmbedBridge() {
   window.parent.postMessage({ type: 'bcgram:ready' }, parentOrigin);
   // CM-8 §2-4: right next to bcgram:ready — initial login state, then re-sent on every change.
   setupAuthStateSender(parentOrigin);
+  // 3LINE 通話連動: initial current chat state, then re-sent on every change.
+  setupCurrentChatSender(parentOrigin);
 }
