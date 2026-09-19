@@ -33,6 +33,14 @@
 //      Report back `bcgram:sendInviteSent { username }` on success, or `bcgram:sendInviteFailed`
 //      with a `reason` — `not_logged_in`, `user_not_found`, or `send_failed` — instead of staying
 //      silent.
+//   10) accept `bcgram:addMembers` from the parent and add `memberUsernames` to an EXISTING group
+//      `chatId` (弾 CM-41). This is the same `addMembersByUsername` job `bcgram:ensureGroup` already
+//      does right after creating a brand-new group — this op is the same action for a group that
+//      already exists (e.g. the operator adds HQ's @username to 12 会社情報 after the 3 groups were
+//      already made). Report back `bcgram:membersAdded { chatId, addedUsernames, failedUsernames }`
+//      on completion, or `bcgram:addMembersFailed { chatId, reason }` on an unexpected exception —
+//      same "never fail silently" rule as every other op above.
+//      See: 指示書/AP/2026-09-19_CM-41_既存3LINEグループへ本部オペレーター後から追加_実装指示書.md
 
 import { addCallback } from '../lib/teact/teactn';
 import { getActions, getGlobal } from '../global';
@@ -239,6 +247,33 @@ interface BcgramSendInviteSentMessage {
 interface BcgramSendInviteFailedMessage {
   type: 'bcgram:sendInviteFailed';
   reason: 'not_logged_in' | 'user_not_found' | 'send_failed';
+}
+
+// 弾 CM-41: parent asks to add `memberUsernames` to a group that ALREADY EXISTS (`chatId`). Unlike
+// `bcgram:ensureGroup`, this never creates anything — it is only the `addMembersByUsername` step,
+// for the case where the group was made before the person's @username was registered (e.g. HQ's
+// username is added to 12 会社情報 after the 3 groups already exist).
+interface BcgramAddMembersMessage {
+  type: 'bcgram:addMembers';
+  chatId: string;
+  memberUsernames: string[];
+}
+
+// 弾 CM-41: outgoing, on completion (whether or not everyone resolved — same shape as
+// `BcgramGroupCreatedMessage.addedUsernames`/`failedUsernames`).
+interface BcgramMembersAddedMessage {
+  type: 'bcgram:membersAdded';
+  chatId: string;
+  addedUsernames: string[];
+  failedUsernames: string[];
+}
+
+// 弾 CM-41: outgoing, on an unexpected exception — never fail silently (same rule as every other op
+// above). `not_logged_in` mirrors `bcgram:ensureGroupFailed`'s reason of the same name.
+interface BcgramAddMembersFailedMessage {
+  type: 'bcgram:addMembersFailed';
+  chatId: string;
+  reason: 'not_logged_in' | 'add_failed';
 }
 
 let lastSentSignature: string | undefined;
@@ -601,6 +636,20 @@ function isBcgramOpenInviteMessage(data: unknown): data is BcgramOpenInviteMessa
   );
 }
 
+// 弾 CM-41: same shape guard as `isBcgramOpenInviteMessage` — require `chatId` to be a non-empty
+// string (the parent always has a real one, since it's adding to a group it already stored) and
+// `memberUsernames` to at least be present (its elements are sanitized by `normalizeMemberUsernames`
+// the same way `bcgram:ensureGroup`'s are, so a malformed array here doesn't crash the handler).
+function isBcgramAddMembersMessage(data: unknown): data is BcgramAddMembersMessage {
+  return Boolean(
+    data
+    && typeof data === 'object'
+    && (data as { type?: unknown }).type === 'bcgram:addMembers'
+    && typeof (data as { chatId?: unknown }).chatId === 'string'
+    && (data as { chatId: string }).chatId.length > 0,
+  );
+}
+
 function isBcgramSendInviteMessage(data: unknown): data is BcgramSendInviteMessage {
   return Boolean(
     data
@@ -755,6 +804,33 @@ function setupReceiver(parentOrigin: string) {
         return;
       }
       getActions().openTelegramLink({ url: data.link });
+      return;
+    }
+
+    // 弾 CM-41: add members to a group that already exists — same underlying action as
+    // `bcgram:ensureGroup`'s post-creation auto-add (`addMembersByUsername`), just without creating
+    // anything first. Never fails silently: an exception reports back `bcgram:addMembersFailed`.
+    if (isBcgramAddMembersMessage(data)) {
+      const global = getGlobal();
+      if (!isBcgramLoggedIn(global)) {
+        const message: BcgramAddMembersFailedMessage = {
+          type: 'bcgram:addMembersFailed', chatId: data.chatId, reason: 'not_logged_in',
+        };
+        window.parent.postMessage(message, parentOrigin);
+        return;
+      }
+      const usernames = normalizeMemberUsernames(data.memberUsernames);
+      void addMembersByUsername(data.chatId, usernames).then(({ added, failed }) => {
+        const message: BcgramMembersAddedMessage = {
+          type: 'bcgram:membersAdded', chatId: data.chatId, addedUsernames: added, failedUsernames: failed,
+        };
+        window.parent.postMessage(message, parentOrigin);
+      }).catch(() => {
+        const message: BcgramAddMembersFailedMessage = {
+          type: 'bcgram:addMembersFailed', chatId: data.chatId, reason: 'add_failed',
+        };
+        window.parent.postMessage(message, parentOrigin);
+      });
       return;
     }
 
